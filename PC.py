@@ -14,14 +14,14 @@ def get_data():
     sd.wait() # wait for the recording of the audio to continue with the script
     write("som.wav", fs , record_voice )
     x, sr = lib.load("som.wav") 
-    pm = lib.feature.rms(y=x) #Compute root-mean-square (RMS) value for each frame
-    times = lib.times_like(pm) #Getting the array with the timesteps
-    stft = lib.feature.chroma_stft(y=x, sr=fs #Chromagram
-    pm2 = pm[0]   #Because it has a array inside an array
-    pm2 = pm2.tolist()     #pass to a list
+    rms = lib.feature.rms(y=x) #Compute root-mean-square (RMS) value for each frame
+    times = lib.times_like(rms) #Getting the array with the timesteps
+    stft = lib.feature.chroma_stft(y=x, sr=fs) #Chromagram
+    rms2 = rms[0]   #Because it has a array inside an array
+    rms2 = rms2.tolist()     #pass to a list
     times = times.tolist() #pass to a list
     stft = stft.tolist()   #pass to a list
-    data = [pm2, times, stft] #pass to a variable (it will contain a list with 3 positions, each one with a list inside)
+    data = [rms2, times, stft] #pass to a variable (it will contain a list with 3 positions, each one with a list inside)
     data = str(data) #converting to string to be sent via client.publish   
     return data
 
@@ -48,3 +48,4 @@ def MQTT_TH(client):
 
 t = th.Thread(target=MQTT_TH, args=[mqtt.Client()])
 t.start()
+
