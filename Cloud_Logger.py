@@ -14,22 +14,10 @@ import plotly.express as px
 import librosa as lib
 import librosa.display
 
-## Graph with the diagram function of this program
-st.graphviz_chart('''
-    digraph {
-        subgraph {
-            microfone -> computador
-        computador -> mqtt_dados [color=blue, style=dotted, shape=box]
-        mqtt_dados -> gitpod [color=blue, style=dotted]
-        mqtt_pedido -> computador [color=blue, style=dotted]
-        gitpod -> mqtt_pedido [color=blue, style=dotted]        
-        mqtt_pedido  [shape=box]
-        mqtt_dados  [shape=box]
-        rank = same; mqtt_pedido; mqtt_dados;
-        }
-    }
-''')
+st.title("Cloud Logger - Inês Botelho")
+st.markdown(':exclamation: Development of a data logger for information extracted from sound, allowing the storage and visualization of this information collected over a period of time longer than 10 minutes :alarm_clock: :exclamation:')
 
+## Graph with the diagram function of this program
 st_autorefresh(interval=5000)  
 
 #MQTT Thread Function
@@ -46,14 +34,14 @@ def MQTT_TH(client):
         #get the data from the msg.playload and get it the initial type
         data = json.loads(msg.payload)
         #in one dataframe we have the RMS and the corresponded Time, its set to a session_state variable
-        data1 = {'PM': data[0],'Times': data[1]}
+        data1 = {'RMS': data[0],'Times': data[1]}
         df = pd.DataFrame(data1)
         st.session_state['current_data1'] = df   
         #Another session_state variable has the chronogram
         st.session_state['current_data2'] = data[2]     
     
     #dataframe_final it's a pandas DataFrame that will be used to save in the CSV file, in here we create the collumns it will have and set to a session variable
-    dataframe_final = pd.DataFrame(columns = ['PM', 'Times','STFT'])
+    dataframe_final = pd.DataFrame(columns = ['RMS', 'Times','STFT'])
     st.session_state['dataframe_final'] = dataframe_final
     #Session_state Variable that will be used to only plot when data is receveid
     st.session_state['plot'] = False
@@ -69,37 +57,40 @@ if 'mqttThread' not in st.session_state:
     st.session_state.mqttThread.start()
 
 # CheckBox to Start Voice Recording (send request of data acquisition and then receive it(
-if st.checkbox('Start Voice Recording'):
+if st.checkbox('Start Voice Recording :microphone:'):
     st.session_state.mqttClient.publish("inesbotelho/request", payload="start")    
     #it will only plot after receive the data
     if(st.session_state['plot']):
         # receive the last data (RMS and Times)
         df1 = st.session_state['current_data1']
-        st.line_chart(data = df1, x="Times", y="PM")  
-        # convert it again to list do add to the final dataframe
-        pm = df1['PM'].tolist()
-        times = df1['Times'].tolist()
         
-        # to plot the SFTF
-        fig, ax = plt.subplots()
-        fig2, ax2 = plt.subplots()
+        if st.checkbox('Show RMS Graph :sparkles:'):
+            st.line_chart(data = df1, x="Times", y="RMS")  
+        
+        # convert it again to list do add to the final dataframe
+        rms = df1['RMS'].tolist()
+        times = df1['Times'].tolist()
         df2 = st.session_state['current_data2']
-        st.markdown("### First Chart")
-
-        df2 = list(df2)
-        df2 = np.array(df2)
-        abso = np.abs(df2)
-        D = librosa.amplitude_to_db(df2)**2
-        img = librosa.display.specshow(librosa.amplitude_to_db(D), y_axis='log', x_axis='time', ax=ax)
-        img2 = lib.display.specshow(df2, y_axis='chroma', x_axis='time')
-        fig.colorbar(img, ax=ax, format="%+2.f dB")
-        fig2.colorbar(img2, ax=ax2, format="%+2.f dB")
-        st.container().pyplot(fig)
-        st.container().pyplot(fig2)
+        
+        if st.checkbox('Show Sonogram Graph :sparkles:'):        
+            # to plot the SFTF
+            fig, ax = plt.subplots()
+            fig2, ax2 = plt.subplots()
+            st.markdown("### First Chart")
+            df2 = list(df2)
+            df2 = np.array(df2)
+            abso = np.abs(df2)
+            D = librosa.amplitude_to_db(df2)**2
+            img = librosa.display.specshow(librosa.amplitude_to_db(D), y_axis='log', x_axis='time', ax=ax)
+            img2 = lib.display.specshow(df2, y_axis='chroma', x_axis='time')
+            fig.colorbar(img, ax=ax, format="%+2.f dB")
+            fig2.colorbar(img2, ax=ax2, format="%+2.f dB")
+            st.container().pyplot(fig)
+            st.container().pyplot(fig2)
 
         # add to the final dataframe the current RMS, Times and STFT
         dataframe_final = st.session_state['dataframe_final']
-        dataframe_final = dataframe_final.append({'PM' : pm, 'Times' : times, 'STFT': df2}, ignore_index = True)
+        dataframe_final = dataframe_final.append({'RMS' : rms, 'Times' : times, 'STFT': df2}, ignore_index = True)
         st.session_state['dataframe_final'] = dataframe_final
 
 else:
@@ -117,3 +108,19 @@ st.download_button(
     file_name='data.csv',
     mime='text/csv',
 )
+
+if st.checkbox('Show Diagram :sparkles:'):
+    st.graphviz_chart('''
+        digraph {
+            subgraph {
+            microfone -> computador
+            computador -> mqtt_dados [color=blue, style=dotted, shape=box]
+            mqtt_dados -> gitpod [color=blue, style=dotted]
+            mqtt_pedido -> computador [color=blue, style=dotted]
+            gitpod -> mqtt_pedido [color=blue, style=dotted]        
+            mqtt_pedido  [shape=box]
+            mqtt_dados  [shape=box]
+            rank = same; mqtt_pedido; mqtt_dados;
+            }
+        }
+    ''')
